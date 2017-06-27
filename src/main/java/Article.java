@@ -8,22 +8,30 @@ public class Article {
     public String[] authors;
     public String pmcId;
     public List<String> citationList;
+    public String keyWord;
     public String url;
     public String downloadLink;
+
 
     private static String CSV_SEPERATOR = ",";
     private static String IN_VALUE_SEPERATOR = ";";
 
     public static String getHeaders(){
-        return "Title" + Article.CSV_SEPERATOR + "Authors" + Article.CSV_SEPERATOR + "PmcId" + Article.CSV_SEPERATOR + "Citations" + Article.CSV_SEPERATOR + "Url";
+        return "Title" + Article.CSV_SEPERATOR +
+                "Authors" + Article.CSV_SEPERATOR +
+                "PmcId" + Article.CSV_SEPERATOR +
+                "Citations" + Article.CSV_SEPERATOR +
+                "Keywords" + Article.CSV_SEPERATOR +
+                "Url";
     }
 
     @Override
     public String toString(){
         return this.title.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
-                this.getAuthors() + Article.CSV_SEPERATOR +
+                this.getAuthors().replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
                 this.pmcId.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
-                this.getCitations() + Article.CSV_SEPERATOR +
+                this.getCitations().replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
+                this.keyWord.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
                 this.url.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR);
     }
 

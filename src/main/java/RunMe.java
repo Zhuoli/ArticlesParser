@@ -72,19 +72,8 @@ public class RunMe {
 
     public void parsePage(String url, String filename, Optional<Integer> maxPageNumOptional){
 
-        // Clean up previous file
-        File file = new File(filename);
-        if(file.exists()){
-            System.out.println("Delete old result file.");
-            file.delete();
-        }
-
-
-        try(  PrintWriter out = new PrintWriter(filename)  ){
-            out.println( Article.getHeaders() );
-        }catch (FileNotFoundException exc){
-            exc.printStackTrace();
-        }
+        // Clean up previous file and add csv header
+        this.writeToFile(filename, Article.getHeaders(), false);
 
         System.setProperty("webdriver.gecko.driver","./src/main/resources/geckodriver");
 
@@ -104,33 +93,22 @@ public class RunMe {
                     String xml = this.retrieveCitationId(article.pmcId);
                     xml = xml.substring(xml.indexOf("<eLinkResult>"));
                     article.citationList = this.retrieveCitationIdsFromCsv(xml);
-                    System.out.println("XML: " + xml);
+                    String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
+                    article.keyWord = keywordsAndAbstracts[0];
+                    this.writeToFile(String.format("abstract_%s.txt", article.pmcId), keywordsAndAbstracts[1], false);
                 } catch (Exception exc) {
                     System.err.println("Error while querring citation webpage: " + exc.getMessage());
                     exc.printStackTrace();
                     article.pmcId = "NONE";
                 }
             }
+            StringBuilder sb = new StringBuilder();
+            for(Article article : articleList) {
+                sb.append(article.toString());
+                sb.append(System.lineSeparator());
+            }
+            this.writeToFile(filename, sb.toString(), true);
 
-            BufferedWriter bw = null;
-
-            try {
-                // APPEND MODE SET HERE
-                bw = new BufferedWriter(new FileWriter(filename, true));
-                for(Article article : articleList) {
-                    bw.write(article.toString());
-                    bw.newLine();
-                }
-                bw.flush();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            } finally {                       // always close the file
-                if (bw != null) try {
-                    bw.close();
-                } catch (IOException ioe2) {
-                    // just ignore it
-                }
-            } // end try/catch/finally
 
             List<WebElement> nextPageClicks = driver.findElements(By.cssSelector("a[title='Next page of results']"));
             if(nextPageClicks.size()==0){
@@ -141,10 +119,27 @@ public class RunMe {
 
         driver.close();
 
-
-
-
         System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + filename + "' ENJOY!");
+    }
+
+    private boolean writeToFile(String fileName, String content, boolean isAppend){
+        BufferedWriter bw = null;
+
+        try {
+            // APPEND MODE SET HERE
+            bw = new BufferedWriter(new FileWriter(fileName, isAppend));
+            bw.write(content);
+            bw.flush();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        } finally {                       // always close the file
+            if (bw != null) try {
+                bw.close();
+            } catch (IOException ioe2) {
+                // just ignore it
+            }
+        } // end try/catch/finally
+        return true;
     }
 
     private List<String> retrieveCitationIdsFromCsv(String csvContent) throws ParserConfigurationException, IOException, SAXException {
@@ -172,6 +167,36 @@ public class RunMe {
                 citationList.add(citation);
         }
         return citationList;
+    }
+
+    private String[] retrieveKeyWordsAndAbstract(String url){
+        String keywords = "";
+        String abstracts = "";
+        WebDriver driver = new FirefoxDriver();
+        try {
+
+            // Navigate to Google
+            driver.get(url);
+            WebElement abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("div[id*='abstractidm']"));
+            if (abstractAndKeyworkdsElement != null) {
+                List<WebElement> elements = abstractAndKeyworkdsElement.findElements(By.cssSelector("div:only-child"));
+                if (elements.size() >= 3) {
+                    abstracts = elements.get(1).getText();
+                    keywords = elements.get(2).getText();
+                } else {
+                    abstracts = abstractAndKeyworkdsElement.getText();
+                }
+            }
+        }catch (Exception exc)
+        {
+            System.err.println("Error parsing abstracts at : " + url);
+            System.err.println(exc.getMessage());
+
+        }finally {
+            driver.close();
+        }
+
+        return new String[]{keywords, abstracts};
     }
 
     private String retrieveCitationId(String citationId) throws IOException{
