@@ -1,4 +1,5 @@
 import org.apache.commons.cli.*;
+import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.w3c.dom.Document;
@@ -9,7 +10,11 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,8 +27,9 @@ import java.util.Optional;
  */
 public class RunMe {
     protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pmc/?term=";
+    private static Optional<CommandLine> cmd = Optional.empty();
     public static void main(String[] args){
-        Optional<CommandLine> cmd = RunMe.parseArguments(args);
+        RunMe.cmd = RunMe.parseArguments(args);
         System.out.println("Input: " + Arrays.toString(args));
 
         if (!cmd.isPresent() || !cmd.get().hasOption(CommandConstant.KEY_WORD) || cmd.get().getOptionValue(CommandConstant.KEY_WORD).length()<1){
@@ -61,6 +67,7 @@ public class RunMe {
         // add t option
         options.addOption(CommandConstant.KEY_WORD, true, "Key word for searching.");
         options.addOption(CommandConstant.PAGE_NUM, true, "Maximum number of pages to parse per query");
+        options.addOption(CommandConstant.DEBUG, false, "Is in debug model or jar model");
         CommandLineParser parser = new DefaultParser();
         try {
             return Optional.of(parser.parse(options, args));
@@ -75,7 +82,11 @@ public class RunMe {
         // Clean up previous file and add csv header
         this.writeToFile(filename, Article.getHeaders(), false);
 
-        System.setProperty("webdriver.gecko.driver","./src/main/resources/geckodriver");
+        if (cmd.isPresent() && cmd.get().hasOption(CommandConstant.DEBUG)) {
+            System.setProperty("webdriver.gecko.driver", "./src/main/resources/geckodriver");
+        }else{
+            System.setProperty("webdriver.gecko.driver", "./geckodriver");
+        }
 
         WebDriver driver = new FirefoxDriver();
         driver.get(url);
@@ -95,7 +106,7 @@ public class RunMe {
                     article.citationList = this.retrieveCitationIdsFromCsv(xml);
                     String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
                     article.keyWord = keywordsAndAbstracts[0];
-                    this.writeToFile(String.format("abstract_%s.txt", article.pmcId), keywordsAndAbstracts[1], false);
+                    this.writeToFile(String.format("./abstracts/abstract_%s.txt", article.pmcId), keywordsAndAbstracts[1], false);
                 } catch (Exception exc) {
                     System.err.println("Error while querring citation webpage: " + exc.getMessage());
                     exc.printStackTrace();
@@ -123,22 +134,13 @@ public class RunMe {
     }
 
     private boolean writeToFile(String fileName, String content, boolean isAppend){
-        BufferedWriter bw = null;
-
+        File pathToFile = new File(fileName);
         try {
-            // APPEND MODE SET HERE
-            bw = new BufferedWriter(new FileWriter(fileName, isAppend));
-            bw.write(content);
-            bw.flush();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        } finally {                       // always close the file
-            if (bw != null) try {
-                bw.close();
-            } catch (IOException ioe2) {
-                // just ignore it
-            }
-        } // end try/catch/finally
+            FileUtils.write(pathToFile, content, "utf-8", isAppend);
+        }catch (IOException exc){
+            System.err.println("Failed to create file directories: " + fileName + "  " + exc.getMessage());
+            return false;
+        }
         return true;
     }
 
