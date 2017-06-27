@@ -1,3 +1,4 @@
+import org.apache.commons.cli.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.w3c.dom.Document;
@@ -14,34 +15,58 @@ import java.util.LinkedList;
 import java.util.List;
 import java.io.*;
 import java.net.*;
+import java.util.Optional;
 
 /**
  * Created by zhuoli on 6/18/17.
  */
 public class RunMe {
-    protected static final String RESULT_FILE_PATH = "result.csv";
     protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pmc/?term=";
     public static void main(String[] args){
-        if (args.length==0){
+        Optional<CommandLine> cmd = RunMe.parseArguments(args);
+        System.out.println("Input: " + Arrays.toString(args));
+
+        if (!cmd.isPresent() || !cmd.get().hasOption(CommandConstant.KEY_WORD) || cmd.get().getOptionValue(CommandConstant.KEY_WORD).length()<1){
             System.err.println("ERROR: Please provide search key word as input parameter.");
             System.exit(1);
         }
-        System.out.println("Input: " + Arrays.toString(args));
-        String term = Arrays.stream(args).reduce("", (word, s) -> word + "+" +s).substring(1);
+        String keyword = cmd.get().getOptionValue(CommandConstant.KEY_WORD);
+        String term = Arrays.stream(keyword.split(" ")).reduce("", (word, s) -> word + "+" +s).substring(1);
         String url = BASE_URL+term;
 
         System.out.println("Website to parse: " + url);
 
-        new RunMe().parseFinancialPage(url);
+
+        String fileName = keyword + ".csv";
+
+        new RunMe().parsePage(url, fileName);
     }
 
-    public void parseFinancialPage(String url){
+    private static Optional<CommandLine> parseArguments(String[] args){
+
+        // create Options object
+        Options options = new Options();
+
+        // add t option
+        options.addOption(CommandConstant.KEY_WORD, true, "Key word for searching.");
+        options.addOption(CommandConstant.PAGE_NUM, true, "Maximum number of pages to parse per query");
+        CommandLineParser parser = new DefaultParser();
+        try {
+            return Optional.of(parser.parse(options, args));
+        } catch (ParseException exc) {
+            System.err.println("Arguments parse exception: " + exc.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public void parsePage(String url, String filename){
         System.setProperty("webdriver.gecko.driver","./src/main/resources/geckodriver");
 
         WebDriver driver = new FirefoxDriver();
         driver.get(url);
+        List<Article> articleList = new LinkedList<>();
 
-        List<Article> articleList = this.retrieveArticleInstance(driver);
+        articleList.addAll(this.retrieveArticleInstance(driver));
         for (Article article : articleList){
             try {
                 String xml = this.retrieveCitationId(article.pmcId);
@@ -55,13 +80,13 @@ public class RunMe {
             }
         }
 
-        File file = new File(RESULT_FILE_PATH);
+        File file = new File(filename);
         if(file.exists()){
             System.out.println("Delete old result file.");
             file.delete();
         }
 
-        try(  PrintWriter out = new PrintWriter(RESULT_FILE_PATH)  ){
+        try(  PrintWriter out = new PrintWriter(filename)  ){
             out.println( Article.getHeaders() );
             for(Article article : articleList){
                 out.println(article.toString());
@@ -70,7 +95,7 @@ public class RunMe {
             exc.printStackTrace();
         }
 
-        System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + RESULT_FILE_PATH + "' ENJOY!");
+        System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + filename + "' ENJOY!");
     }
 
     private List<String> retrieveCitationIdsFromCsv(String csvContent) throws ParserConfigurationException, IOException, SAXException {
