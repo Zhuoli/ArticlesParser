@@ -39,7 +39,18 @@ public class RunMe {
 
         String fileName = keyword + ".csv";
 
-        new RunMe().parsePage(url, fileName);
+        Optional<Integer> maxPageNum = Optional.empty();
+
+        if (cmd.isPresent() && cmd.get().hasOption(CommandConstant.KEY_WORD)){
+            String numStr = cmd.get().getOptionValue(CommandConstant.KEY_WORD);
+            try {
+                maxPageNum = Optional.of(Integer.parseInt(numStr));
+            }catch (NumberFormatException exc){
+                System.err.println("Incorrect max page number.");
+            }
+        }
+
+        new RunMe().parsePage(url, fileName, maxPageNum);
     }
 
     private static Optional<CommandLine> parseArguments(String[] args){
@@ -59,41 +70,79 @@ public class RunMe {
         }
     }
 
-    public void parsePage(String url, String filename){
-        System.setProperty("webdriver.gecko.driver","./src/main/resources/geckodriver");
+    public void parsePage(String url, String filename, Optional<Integer> maxPageNumOptional){
 
-        WebDriver driver = new FirefoxDriver();
-        driver.get(url);
-        List<Article> articleList = new LinkedList<>();
-
-        articleList.addAll(this.retrieveArticleInstance(driver));
-        for (Article article : articleList){
-            try {
-                String xml = this.retrieveCitationId(article.pmcId);
-                xml = xml.substring(xml.indexOf("<eLinkResult>"));
-                article.citationList = this.retrieveCitationIdsFromCsv(xml);
-                System.out.println("XML: " + xml);
-            }catch (Exception exc){
-                System.err.println("Error while querring citation webpage: " + exc.getMessage());
-                exc.printStackTrace();
-                article.pmcId = "NONE";
-            }
-        }
-
+        // Clean up previous file
         File file = new File(filename);
         if(file.exists()){
             System.out.println("Delete old result file.");
             file.delete();
         }
 
+
         try(  PrintWriter out = new PrintWriter(filename)  ){
             out.println( Article.getHeaders() );
-            for(Article article : articleList){
-                out.println(article.toString());
-            }
         }catch (FileNotFoundException exc){
             exc.printStackTrace();
         }
+
+        System.setProperty("webdriver.gecko.driver","./src/main/resources/geckodriver");
+
+        WebDriver driver = new FirefoxDriver();
+        driver.get(url);
+
+        int pageCount = 0;
+        while(true) {
+            pageCount++;
+            if (maxPageNumOptional.isPresent() && pageCount >= maxPageNumOptional.get()){
+                break;
+            }
+
+            List<Article> articleList = this.retrieveArticleInstance(driver, pageCount);
+            for (Article article : articleList) {
+                try {
+                    String xml = this.retrieveCitationId(article.pmcId);
+                    xml = xml.substring(xml.indexOf("<eLinkResult>"));
+                    article.citationList = this.retrieveCitationIdsFromCsv(xml);
+                    System.out.println("XML: " + xml);
+                } catch (Exception exc) {
+                    System.err.println("Error while querring citation webpage: " + exc.getMessage());
+                    exc.printStackTrace();
+                    article.pmcId = "NONE";
+                }
+            }
+
+            BufferedWriter bw = null;
+
+            try {
+                // APPEND MODE SET HERE
+                bw = new BufferedWriter(new FileWriter(filename, true));
+                for(Article article : articleList) {
+                    bw.write(article.toString());
+                    bw.newLine();
+                }
+                bw.flush();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            } finally {                       // always close the file
+                if (bw != null) try {
+                    bw.close();
+                } catch (IOException ioe2) {
+                    // just ignore it
+                }
+            } // end try/catch/finally
+
+            List<WebElement> nextPageClicks = driver.findElements(By.cssSelector("a[title='Next page of results']"));
+            if(nextPageClicks.size()==0){
+                break;
+            }
+            nextPageClicks.get(0).click();
+        }
+
+        driver.close();
+
+
+
 
         System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + filename + "' ENJOY!");
     }
@@ -146,31 +195,38 @@ public class RunMe {
     }
 
 
-    private List<Article> retrieveArticleInstance(WebDriver driver){
+    private List<Article> retrieveArticleInstance(WebDriver driver, int pageNumber){
         List<Article> articleList = new LinkedList<>();
-        List<WebElement> articleElementList = driver.findElements(By.cssSelector(".rprt"));
-        for(WebElement webElement : articleElementList){
-            try {
-                Article article = new Article();
-                String title = webElement.findElement(By.cssSelector(".title")).getText();
-                String href = webElement.findElement(By.cssSelector(".title")).findElement(By.cssSelector("a")).getAttribute("href");
-                String authors = webElement.findElement(By.cssSelector(".desc")).getText();
-                article.title = title;
-                article.url = href;
-                article.authors = authors.split(",");
 
-                WebElement linkBlock = webElement.findElement(By.cssSelector(".links"));
-                List<WebElement> linkList = linkBlock.findElements(By.cssSelector("a"));
-                if (linkList.size() > 2) {
-                    String downloadLink = linkList.get(2).getAttribute("href");
-                    article.downloadLink = downloadLink;
+        try {
+            List<WebElement> articleElementList = driver.findElements(By.cssSelector(".rprt"));
+            for (WebElement webElement : articleElementList) {
+                try {
+                    Article article = new Article();
+                    String title = webElement.findElement(By.cssSelector(".title")).getText();
+                    String href = webElement.findElement(By.cssSelector(".title")).findElement(By.cssSelector("a")).getAttribute("href");
+                    String authors = webElement.findElement(By.cssSelector(".desc")).getText();
+                    article.title = title;
+                    article.url = href;
+                    article.authors = authors.split(",");
+
+                    WebElement linkBlock = webElement.findElement(By.cssSelector(".links"));
+                    List<WebElement> linkList = linkBlock.findElements(By.cssSelector("a"));
+                    if (linkList.size() > 2) {
+                        String downloadLink = linkList.get(2).getAttribute("href");
+                        article.downloadLink = downloadLink;
+                    }
+                    String pmcId = webElement.findElement(By.cssSelector(".rprtid")).getText();
+                    article.pmcId = pmcId.split(":")[1].trim().substring(3);
+                    articleList.add(article);
+                } catch (Exception exc) {
+                    System.err.println("Error while processing title: " + exc.getMessage());
                 }
-                String pmcId = webElement.findElement(By.cssSelector(".rprtid")).getText();
-                article.pmcId = pmcId.split(":")[1].trim().substring(3);
-                articleList.add(article);
-            }catch (Exception exc){
-                System.err.println("Error while processing title: " + exc.getMessage());
             }
+        }catch (Exception exc){
+            System.err.println("Failed parsing " + pageNumber + " page.");
+            System.err.println(exc.getMessage());
+            exc.printStackTrace();
         }
         return articleList;
     }
