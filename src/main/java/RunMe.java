@@ -22,23 +22,31 @@ import java.util.Optional;
  * Created by zhuoli on 6/18/17.
  */
 public class RunMe {
-    protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pmc/?term=";
+    protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pmc";
     private static Optional<CommandLine> cmd = Optional.empty();
     public static void main(String[] args){
         RunMe.cmd = RunMe.parseArguments(args);
         System.out.println("Input: " + Arrays.toString(args));
+        String keyword;
 
-        if (!cmd.isPresent() || !cmd.get().hasOption(CommandConstant.KEY_WORD) || cmd.get().getOptionValue(CommandConstant.KEY_WORD).length()<1){
-            System.err.println("ERROR: Please provide search key word as input parameter.");
-            System.exit(1);
+        // Read keyword from console if not set in arguments
+        if (!cmd.isPresent() || !cmd.get().hasOption(CommandConstant.KEY_WORD) || cmd.get().getOptionValue(CommandConstant.KEY_WORD).length()<1) {
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                System.out.print("Keyword is not set in arguments, please type keyword to parse: \n");
+
+                keyword= reader.readLine();
+                System.out.println("Your keyword is: " + keyword);
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                keyword = "";
+                System.exit(1);
+            }
+        }else {
+             keyword = cmd.get().getOptionValue(CommandConstant.KEY_WORD);
         }
-        String keyword = cmd.get().getOptionValue(CommandConstant.KEY_WORD);
-        String term = Arrays.stream(keyword.split(" ")).reduce("", (word, s) -> word + "+" +s).substring(1);
-        String url = BASE_URL+term;
 
-        System.out.println("Website to parse: " + url);
-
-
+        System.out.println("Website to parse: " + BASE_URL);
 
         Optional<Integer> maxPageNum = Optional.empty();
 
@@ -51,7 +59,7 @@ public class RunMe {
             }
         }
 
-        new RunMe().parsePage(url, keyword, maxPageNum);
+        new RunMe().parsePage(BASE_URL, keyword, maxPageNum);
     }
 
     private static Optional<CommandLine> parseArguments(String[] args){
@@ -73,9 +81,9 @@ public class RunMe {
         }
     }
 
-    public void parsePage(String url, String keywords, Optional<Integer> maxPageNumOptional){
+    public void parsePage(String url, String keyword, Optional<Integer> maxPageNumOptional){
 
-        String fileName = keywords.replace(" ","") + ".csv";
+        String fileName = keyword.replace(" ","") + ".csv";
 
         // Clean up previous file and add csv header
         this.writeToFile(fileName, Article.getHeaders() + System.lineSeparator(), false);
@@ -88,6 +96,10 @@ public class RunMe {
 
         WebDriver driver = new FirefoxDriver();
         driver.get(url);
+        WebElement keyWordInputElement = driver.findElement(By.cssSelector("input[id='term']"));
+        keyWordInputElement.sendKeys(keyword);
+        WebElement searchButton = driver.findElement(By.cssSelector("button[id='search']"));
+        searchButton.click();
 
         int pageCount = 0;
         while(true) {
@@ -105,7 +117,7 @@ public class RunMe {
                     if (!RunMe.cmd.isPresent() || !RunMe.cmd.get().hasOption(CommandConstant.DISABLE_ABSTRACTS)) {
                         String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
                         article.keyWord = keywordsAndAbstracts[0];
-                        this.writeToFile(String.format("./abstracts_%s/abstract_%s.txt",keywords.replace(" ",""), article.pmcId), keywordsAndAbstracts[1], false);
+                        this.writeToFile(String.format("./abstracts_%s/abstract_%s.txt",keyword.replace(" ",""), article.pmcId), keywordsAndAbstracts[1], false);
                     }
                 } catch (Exception exc) {
                     System.err.println("Error while querring citation webpage: " + exc.getMessage());
