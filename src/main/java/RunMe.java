@@ -10,11 +10,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,12 +39,11 @@ public class RunMe {
         System.out.println("Website to parse: " + url);
 
 
-        String fileName = keyword + ".csv";
 
         Optional<Integer> maxPageNum = Optional.empty();
 
-        if (cmd.isPresent() && cmd.get().hasOption(CommandConstant.KEY_WORD)){
-            String numStr = cmd.get().getOptionValue(CommandConstant.KEY_WORD);
+        if (cmd.isPresent() && cmd.get().hasOption(CommandConstant.PAGE_NUM)){
+            String numStr = cmd.get().getOptionValue(CommandConstant.PAGE_NUM);
             try {
                 maxPageNum = Optional.of(Integer.parseInt(numStr));
             }catch (NumberFormatException exc){
@@ -56,7 +51,7 @@ public class RunMe {
             }
         }
 
-        new RunMe().parsePage(url, fileName, maxPageNum);
+        new RunMe().parsePage(url, keyword, maxPageNum);
     }
 
     private static Optional<CommandLine> parseArguments(String[] args){
@@ -68,6 +63,7 @@ public class RunMe {
         options.addOption(CommandConstant.KEY_WORD, true, "Key word for searching.");
         options.addOption(CommandConstant.PAGE_NUM, true, "Maximum number of pages to parse per query");
         options.addOption(CommandConstant.DEBUG, false, "Is in debug model or jar model");
+        options.addOption(CommandConstant.DISABLE_ABSTRACTS,false, "Disable parsing abstracts and keywords to accelerate the speed.");
         CommandLineParser parser = new DefaultParser();
         try {
             return Optional.of(parser.parse(options, args));
@@ -77,10 +73,12 @@ public class RunMe {
         }
     }
 
-    public void parsePage(String url, String filename, Optional<Integer> maxPageNumOptional){
+    public void parsePage(String url, String keywords, Optional<Integer> maxPageNumOptional){
+
+        String fileName = keywords.replace(" ","") + ".csv";
 
         // Clean up previous file and add csv header
-        this.writeToFile(filename, Article.getHeaders(), false);
+        this.writeToFile(fileName, Article.getHeaders() + System.lineSeparator(), false);
 
         if (cmd.isPresent() && cmd.get().hasOption(CommandConstant.DEBUG)) {
             System.setProperty("webdriver.gecko.driver", "./src/main/resources/geckodriver");
@@ -94,7 +92,7 @@ public class RunMe {
         int pageCount = 0;
         while(true) {
             pageCount++;
-            if (maxPageNumOptional.isPresent() && pageCount >= maxPageNumOptional.get()){
+            if (maxPageNumOptional.isPresent() && pageCount > maxPageNumOptional.get()){
                 break;
             }
 
@@ -104,9 +102,11 @@ public class RunMe {
                     String xml = this.retrieveCitationId(article.pmcId);
                     xml = xml.substring(xml.indexOf("<eLinkResult>"));
                     article.citationList = this.retrieveCitationIdsFromCsv(xml);
-                    String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
-                    article.keyWord = keywordsAndAbstracts[0];
-                    this.writeToFile(String.format("./abstracts/abstract_%s.txt", article.pmcId), keywordsAndAbstracts[1], false);
+                    if (!RunMe.cmd.isPresent() || !RunMe.cmd.get().hasOption(CommandConstant.DISABLE_ABSTRACTS)) {
+                        String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
+                        article.keyWord = keywordsAndAbstracts[0];
+                        this.writeToFile(String.format("./abstracts_%s/abstract_%s.txt",keywords.replace(" ",""), article.pmcId), keywordsAndAbstracts[1], false);
+                    }
                 } catch (Exception exc) {
                     System.err.println("Error while querring citation webpage: " + exc.getMessage());
                     exc.printStackTrace();
@@ -118,7 +118,7 @@ public class RunMe {
                 sb.append(article.toString());
                 sb.append(System.lineSeparator());
             }
-            this.writeToFile(filename, sb.toString(), true);
+            this.writeToFile(fileName, sb.toString(), true);
 
 
             List<WebElement> nextPageClicks = driver.findElements(By.cssSelector("a[title='Next page of results']"));
@@ -130,7 +130,7 @@ public class RunMe {
 
         driver.close();
 
-        System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + filename + "' ENJOY!");
+        System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + fileName + "' ENJOY!");
     }
 
     private boolean writeToFile(String fileName, String content, boolean isAppend){
@@ -181,13 +181,9 @@ public class RunMe {
             driver.get(url);
             WebElement abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("div[id*='abstractidm']"));
             if (abstractAndKeyworkdsElement != null) {
-                List<WebElement> elements = abstractAndKeyworkdsElement.findElements(By.cssSelector("div:only-child"));
-                if (elements.size() >= 3) {
-                    abstracts = elements.get(1).getText();
-                    keywords = elements.get(2).getText();
-                } else {
-                    abstracts = abstractAndKeyworkdsElement.getText();
-                }
+                abstracts = abstractAndKeyworkdsElement.getText();
+                WebElement keywordElement = abstractAndKeyworkdsElement.findElement(By.cssSelector("span[class='kwd-text']"));
+                keywords = keywordElement==null? keywords : keywordElement.getText();
             }
         }catch (Exception exc)
         {

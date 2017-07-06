@@ -1,16 +1,17 @@
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * Created by zhuoli on 6/24/17.
  */
 public class Article {
-    public String title;
-    public String[] authors;
-    public String pmcId;
-    public List<String> citationList;
-    public String keyWord;
-    public String url;
-    public String downloadLink;
+    public String title ="";
+    public String[] authors = new String[]{""};
+    public String pmcId = "";
+    public List<String> citationList = new LinkedList<>();
+    public String keyWord = "";
+    public String url = "";
+    public String downloadLink = "";
 
 
     private static String CSV_SEPERATOR = ",";

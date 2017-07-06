@@ -1,0 +1,4 @@
+Go to:
+Abstract
+A human-rights-based analysis can be a useful tool for the scientific community and policy makers as they develop codes of conduct, harmonized standards, and national policies for data sharing. The human rights framework provides a shared set of values and norms across borders, defines rights and responsibilities of various actors involved in data sharing, addresses the potential harms as well as the benefits of data sharing, and offers a framework for balancing competing values. The right to enjoy the benefits of scientific progress and its applications offers a particularly helpful lens through which to view data as both a tool of scientific inquiry to which access is vital and as a product of science from which everyone should benefit.
+Keywords: human rights, data, ethics, right to science, privacy, informed consent, Article 15

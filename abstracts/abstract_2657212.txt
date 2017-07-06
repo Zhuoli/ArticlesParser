@@ -1,0 +1,10 @@
+Go to:
+Abstract
+Background
+In the generalized epidemics of HIV in southern Sub-Saharan Africa, men who have sex with men have been largely excluded from HIV surveillance and research. Epidemiologic data for MSM in southern Africa are among the sparsest globally, and HIV risk among these men has yet to be characterized in the majority of countries.
+Methodology
+A cross-sectional anonymous probe of 537 men recruited with non-probability sampling among men who reported ever having had sex with another man in Malawi, Namibia, and Botswana using a structured survey instrument and HIV screening with the OraQuick© rapid test kit.
+Principal Findings
+The HIV prevalence among those between the ages of 18 and 23 was 8.3% (20/241); 20.0% (42/210) among those 24–29; and 35.7% (30/84) among those older than 30 for an overall prevalence of 17.4% (95% CI 14.4–20.8). In multivariate logistic regressions, being older than 25 (aOR 4.0, 95% CI 2.0–8.0), and not always wearing condoms during sex (aOR 2.6, 95% CI 1.3–4.9) were significantly associated with being HIV-positive. Sexual concurrency was common with 16.6% having ongoing concurrent stable relationships with a man and a woman and 53.7% had both male and female sexual partners in proceeding 6 months. Unprotected anal intercourse was common and the use of petroleum-based lubricants was also common when using condoms. Human rights abuses, including blackmail and denial of housing and health care was prevalent with 42.1% (222/527) reporting at least one abuse.
+Conclusions
+MSM are a high-risk group for HIV infection and human rights abuses in Malawi, Namibia, and Botswana. Concurrency of sexual partnerships with partners of both genders may play important roles in HIV spread in these populations. Further epidemiologic and evaluative research is needed to assess the contribution of MSM to southern Africa's HIV epidemics and how best to mitigate this. These countries should initiate and adequately fund evidence-based and targeted HIV prevention programs for MSM.
