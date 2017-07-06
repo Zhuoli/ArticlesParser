@@ -1,9 +1,0 @@
-Go to:
-Abstract
-Background
-The Chin State of Burma (also known as Myanmar) is an isolated ethnic minority area with poor health outcomes and reports of food insecurity and human rights violations. We report on a population-based assessment of health and human rights in Chin State. We sought to quantify reported human rights violations in Chin State and associations between these reported violations and health status at the household level.
-Methods and Findings
-Multistaged household cluster sampling was done. Heads of household were interviewed on demographics, access to health care, health status, food insecurity, forced displacement, forced labor, and other human rights violations during the preceding 12 months. Ratios of the prevalence of household hunger comparing exposed and unexposed to each reported violation were estimated using binomial regression, and 95% confidence intervals (CIs) were constructed. Multivariate models were done to adjust for possible confounders. Overall, 91.9% of households (95% CI 89.7%–94.1%) reported forced labor in the past 12 months. Forty-three percent of households met FANTA-2 (Food and Nutrition Technical Assistance II project) definitions for moderate to severe household hunger. Common violations reported were food theft, livestock theft or killing, forced displacement, beatings and torture, detentions, disappearances, and religious and ethnic persecution. Self reporting of multiple rights abuses was independently associated with household hunger.
-Conclusions
-Our findings indicate widespread self-reports of human rights violations. The nature and extent of these violations may warrant investigation by the United Nations or International Criminal Court.
-Please see later in the article for the Editors' Summary

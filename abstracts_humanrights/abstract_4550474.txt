@@ -1,8 +1,0 @@
-Go to:
-Abstract
-Background
-Decades of conflict in eastern Myanmar have resulted in high prevalence of human rights violations and poor health outcomes. While recent ceasefire agreements have reduced conflict in this area, it is unknown whether this has resulted in concomitant reductions in human rights violations.
-Methods and Findings
-We conducted a two-stage cluster survey of 686 households in eastern Myanmar to assess health status, access to healthcare, food security, exposure to human rights violations and identification of alleged perpetrators over the 12 months prior to January 2012, a period of near-absence of conflict in this region. Household hunger (FANTA-2 scale) was moderate/high in 91 (13.2%) households, while the proportion of households reporting food shortages in each month of 2011 ranged from 19.9% in December to 47.0% in September, with food insecurity peaking just prior to the harvest. Diarrhea prevalence in children was 14.2% and in everyone it was 5.8%. Forced labor was the most common human rights violation (185 households, 24.9%), and 210 households (30.6%) reported experiencing one or more human rights violations in 2011. Multiple logistic regression analysis identified associations between human rights violations and poor health outcomes.
-Conclusion
-Human rights violations and their health consequences persist despite reduced intensity of conflict in eastern Myanmar. Ceasefire agreements should include language that protects human rights, and reconciliation efforts should address the health consequences of decades of human rights violations.
