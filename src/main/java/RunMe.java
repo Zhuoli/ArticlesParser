@@ -83,7 +83,13 @@ public class RunMe {
 
     public void parsePage(String url, String keyword, Optional<Integer> maxPageNumOptional){
 
-        String fileName = keyword.replace(" ","") + ".csv";
+        String fileName = keyword.replace("/", "").replace("\\", "");
+        if (fileName.length()>100){
+            fileName = fileName.substring(0, 100) + "...";
+        }
+        String cititationFolderName = String.format("abstracts_%s", fileName);
+        cititationFolderName = cititationFolderName.substring(0, Math.min(cititationFolderName.length(), 255));
+        fileName = fileName.substring(0, Math.min(fileName.length(), 255)) + ".csv";
 
         // Clean up previous file and add csv header
         this.writeToFile(fileName, Article.getHeaders() + System.lineSeparator(), false);
@@ -117,7 +123,7 @@ public class RunMe {
                     if (!RunMe.cmd.isPresent() || !RunMe.cmd.get().hasOption(CommandConstant.DISABLE_ABSTRACTS)) {
                         String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
                         article.keyWord = keywordsAndAbstracts[0];
-                        this.writeToFile(String.format("./abstracts_%s/abstract_%s.txt",keyword.replace(" ",""), article.pmcId), keywordsAndAbstracts[1], false);
+                        this.writeToFile(String.format("./%s/abstract_%s.txt", cititationFolderName, article.pmcId), keywordsAndAbstracts[1], false);
                     }
                 } catch (Exception exc) {
                     System.err.println("Error while querring citation webpage: " + exc.getMessage());
@@ -151,7 +157,12 @@ public class RunMe {
             FileUtils.write(pathToFile, content, "utf-8", isAppend);
         }catch (IOException exc){
             System.err.println("Failed to create file directories: " + fileName + "  " + exc.getMessage());
-            return false;
+            System.out.println("\nPress any key to exit.");
+            try {
+                System.in.read();
+            }catch (Exception e){
+            }
+            System.exit(-1);
         }
         return true;
     }
