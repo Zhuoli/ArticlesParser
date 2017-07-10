@@ -6,4 +6,5 @@ public class CommandConstant {
     public final static String PAGE_NUM = "n";
     public final static String DEBUG ="debug";
     public final static String DISABLE_ABSTRACTS = "disable";
+    public final static String SKIP_TP="s";
 }

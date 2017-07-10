@@ -72,6 +72,7 @@ public class RunMe {
         options.addOption(CommandConstant.PAGE_NUM, true, "Maximum number of pages to parse per query");
         options.addOption(CommandConstant.DEBUG, false, "Is in debug model or jar model");
         options.addOption(CommandConstant.DISABLE_ABSTRACTS,false, "Disable parsing abstracts and keywords to accelerate the speed.");
+        options.addOption(CommandConstant.SKIP_TP, true, "Starting page of the parsing result.");
         CommandLineParser parser = new DefaultParser();
         try {
             return Optional.of(parser.parse(options, args));
@@ -106,6 +107,15 @@ public class RunMe {
         keyWordInputElement.sendKeys(keyword);
         WebElement searchButton = driver.findElement(By.cssSelector("button[id='search']"));
         searchButton.click();
+
+        if(cmd.isPresent() && cmd.get().hasOption(CommandConstant.SKIP_TP)) {
+
+            String skipToNum = cmd.get().getOptionValue(CommandConstant.SKIP_TP);
+            WebElement pageNumberInputElement = driver.findElement(By.cssSelector("input[id='pageno']"));
+            pageNumberInputElement.clear();
+            pageNumberInputElement.sendKeys(skipToNum);
+            pageNumberInputElement.sendKeys(Keys.RETURN);
+        }
 
         int pageCount = 0;
         while(true) {
@@ -198,19 +208,23 @@ public class RunMe {
         String keywords = "";
         String abstracts = "";
         WebDriver driver = new FirefoxDriver();
+        WebElement abstractAndKeyworkdsElement = null;
         try {
-
             // Navigate to Google
             driver.get(url);
-            WebElement abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("div[id*='abstractidm']"));
+            try {
+                abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("div[id*='abstractidm']"));
+            }catch (Exception exc){
+                abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("p[id*=pidm]"));
+            }
             if (abstractAndKeyworkdsElement != null) {
                 abstracts = abstractAndKeyworkdsElement.getText();
                 WebElement keywordElement = abstractAndKeyworkdsElement.findElement(By.cssSelector("span[class='kwd-text']"));
                 keywords = keywordElement==null? keywords : keywordElement.getText();
             }
-        }catch (Exception exc)
+        }catch (NoSuchElementException exc)
         {
-            System.err.println("Error parsing abstracts at : " + url);
+            System.err.println("Article keyword doesn't exist at : " + url);
             System.err.println(exc.getMessage());
 
         }finally {
