@@ -12,6 +12,7 @@ public class Article {
     public String keyWord = "";
     public String url = "";
     public String downloadLink = "";
+    public String datePublished = "";
 
 
     private static String CSV_SEPERATOR = ",";
@@ -23,7 +24,8 @@ public class Article {
                 "PmcId" + Article.CSV_SEPERATOR +
                 "Citations" + Article.CSV_SEPERATOR +
                 "Keywords" + Article.CSV_SEPERATOR +
-                "Url";
+                "Url" + Article.CSV_SEPERATOR +
+                "Publish Date";
     }
 
     @Override
@@ -33,7 +35,8 @@ public class Article {
                 this.pmcId.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
                 this.getCitations().replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
                 this.keyWord.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR) + Article.CSV_SEPERATOR +
-                this.url.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR);
+                this.url.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR)  + Article.CSV_SEPERATOR +
+                this.datePublished.replace(CSV_SEPERATOR, IN_VALUE_SEPERATOR);
     }
 
     public String getAuthors(){

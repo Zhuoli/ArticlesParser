@@ -22,8 +22,9 @@ import java.util.Optional;
  * Created by zhuoli on 6/18/17.
  */
 public class RunMe {
-    protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pmc";
+    protected static String BASE_URL = "https://www.ncbi.nlm.nih.gov/pubmed";
     private static Optional<CommandLine> cmd = Optional.empty();
+    private static List<String> failedIds = new LinkedList<>();
     public static void main(String[] args){
         RunMe.cmd = RunMe.parseArguments(args);
         System.out.println("Input: " + Arrays.toString(args));
@@ -157,7 +158,12 @@ public class RunMe {
         }
 
         driver.close();
-
+        if(RunMe.failedIds.size()!=0) {
+            System.out.println(RunMe.failedIds.size() + " papers are failed to parse, them are:");
+            for(String title: RunMe.failedIds){
+                System.out.println(title);
+            }
+        }
         System.out.println("\nYOU ARE ALL SET \nParsing result saved at '" + fileName + "' ENJOY!");
     }
 
@@ -208,21 +214,27 @@ public class RunMe {
         String keywords = "";
         String abstracts = "";
         WebDriver driver = new FirefoxDriver();
-        WebElement abstractAndKeyworkdsElement = null;
+        List<WebElement> abstractElements = null;
+        WebElement keywordsElement = null;
         try {
             // Navigate to Google
             driver.get(url);
             try {
-                abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("div[id*='abstractidm']"));
-            }catch (Exception exc){
-                abstractAndKeyworkdsElement = driver.findElement(By.cssSelector("p[id*=pidm]"));
+                keywordsElement = driver.findElement(By.cssSelector("div[class='keywords']  p"));
+                keywords = keywordsElement==null? keywords : keywordsElement.getText();
+            }catch (NoSuchElementException exc){
+                System.err.println("Article keywords doesn't exist at : " + url);
+                System.err.println(exc.getMessage());
             }
-            if (abstractAndKeyworkdsElement != null) {
-                abstracts = abstractAndKeyworkdsElement.getText();
-                WebElement keywordElement = abstractAndKeyworkdsElement.findElement(By.cssSelector("span[class='kwd-text']"));
-                keywords = keywordElement==null? keywords : keywordElement.getText();
+            try{
+                abstractElements = driver.findElements(By.cssSelector("abstracttext"));
+                abstracts = abstractElements.stream().map(c -> c.getText()).reduce((a,b) -> a+"\t\n"+b).get();
+            }catch (NoSuchElementException exc){
+                System.err.println("Article abstracts doesn't exist at : " + url);
+                System.err.println(exc.getMessage());
+
             }
-        }catch (NoSuchElementException exc)
+        }catch (Exception exc)
         {
             System.err.println("Article keyword doesn't exist at : " + url);
             System.err.println(exc.getMessage());
@@ -261,14 +273,17 @@ public class RunMe {
         try {
             List<WebElement> articleElementList = driver.findElements(By.cssSelector(".rprt"));
             for (WebElement webElement : articleElementList) {
+                String title = null;
                 try {
                     Article article = new Article();
-                    String title = webElement.findElement(By.cssSelector(".title")).getText();
+                    title = webElement.findElement(By.cssSelector(".title")).getText();
                     String href = webElement.findElement(By.cssSelector(".title")).findElement(By.cssSelector("a")).getAttribute("href");
                     String authors = webElement.findElement(By.cssSelector(".desc")).getText();
+                    String details = webElement.findElement(By.cssSelector(".details")).getText();
                     article.title = title;
                     article.url = href;
                     article.authors = authors.split(",");
+                    article.datePublished = details.split("\\.")[1].split(";")[0].split(":")[0];
 
                     WebElement linkBlock = webElement.findElement(By.cssSelector(".links"));
                     List<WebElement> linkList = linkBlock.findElements(By.cssSelector("a"));
@@ -280,6 +295,7 @@ public class RunMe {
                     article.pmcId = pmcId.split(":")[1].trim().substring(3);
                     articleList.add(article);
                 } catch (Exception exc) {
+                    RunMe.failedIds.add(title!=null? title : "Failuer at Page Number: "+pageNumber);
                     System.err.println("Error while processing title: " + exc.getMessage());
                 }
             }
