@@ -128,9 +128,13 @@ public class RunMe {
             List<Article> articleList = this.retrieveArticleInstance(driver, pageCount);
             for (Article article : articleList) {
                 try {
-                    String xml = this.retrieveCitationId(article.pmcId);
-                    xml = xml.substring(xml.indexOf("<eLinkResult>"));
-                    article.citationList = this.retrieveCitationIdsFromCsv(xml);
+                    String citationXml = this.retrieveCitationId(article.pmcId);
+                    citationXml = citationXml.substring(citationXml.indexOf("<eLinkResult>"));
+                    article.citationList = this.retrieveLinkIdsFromCsv(citationXml);
+                    String referenceXml = this.retrieveReference(article.pmcId);
+                    referenceXml = referenceXml.substring(citationXml.indexOf("<eLinkResult>"));
+                    article.references = this.retrieveLinkIdsFromCsv(referenceXml);
+
                     if (!RunMe.cmd.isPresent() || !RunMe.cmd.get().hasOption(CommandConstant.DISABLE_ABSTRACTS)) {
                         String[] keywordsAndAbstracts = this.retrieveKeyWordsAndAbstract(article.url);
                         article.keyWord = keywordsAndAbstracts[0];
@@ -183,7 +187,7 @@ public class RunMe {
         return true;
     }
 
-    private List<String> retrieveCitationIdsFromCsv(String csvContent) throws ParserConfigurationException, IOException, SAXException {
+    private List<String> retrieveLinkIdsFromCsv(String csvContent) throws ParserConfigurationException, IOException, SAXException {
         List<String> citationList = new LinkedList<>();
 
         // Create XML object and read values from the given path
@@ -246,9 +250,17 @@ public class RunMe {
         return new String[]{keywords, abstracts};
     }
 
+    static String citationBaseUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&linkname=pubmed_pubmed_citedin&id=";
     private String retrieveCitationId(String citationId) throws IOException{
-        String url =
-                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&linkname=pubmed_pmc_refs&id=" + citationId;
+        return this.retrieveXMLUrl(citationBaseUrl+citationId);
+    }
+
+    static String referenceBaseUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&linkname=pubmed_pubmed_refs&id=";
+    private String retrieveReference(String citationId) throws IOException{
+        return this.retrieveXMLUrl(referenceBaseUrl+citationId);
+    }
+
+    private String retrieveXMLUrl(String url) throws IOException{
         URL website = new URL(url);
         URLConnection connection = website.openConnection();
         BufferedReader in = new BufferedReader(
@@ -265,6 +277,7 @@ public class RunMe {
 
         return response.toString();
     }
+
 
 
     private List<Article> retrieveArticleInstance(WebDriver driver, int pageNumber){
@@ -292,10 +305,10 @@ public class RunMe {
                         article.downloadLink = downloadLink;
                     }
                     String pmcId = webElement.findElement(By.cssSelector(".rprtid")).getText();
-                    article.pmcId = pmcId.split(":")[1].trim().substring(3);
+                    article.pmcId = pmcId.split(":")[1].trim();
                     articleList.add(article);
                 } catch (Exception exc) {
-                    RunMe.failedIds.add(title!=null? title : "Failuer at Page Number: "+pageNumber);
+                    RunMe.failedIds.add(title!=null? title : "Failuer at Page Number: "+pageNumber + exc.getMessage());
                     System.err.println("Error while processing title: " + exc.getMessage());
                 }
             }
